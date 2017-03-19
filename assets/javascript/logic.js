@@ -1,6 +1,6 @@
 $(document).ready(function() {
 
-$(function () {
+$(function (combodate) {
     $("#time-input").combodate({
         firstItem: "name",
         minuteStep: 1
@@ -27,11 +27,13 @@ $(function () {
 // Submit button click
     $("#submit-btn").on("click", function () {
         event.preventDefault();
-        // Get user input 
+        // Get user input
         var trainName = $("#train-input").val().trim();
         var destination = $("#destination-input").val().trim();
-        var firstTrainTime = $("#time-input").val().trim();
+        var firstTrainTime = $("#time-input").combodate('getValue', 'HH:mm');
+        //var firstTrainTime = $("#time-input").val();
         var frequency = $("#frequency-input").val().trim();
+
 
 
         // Create a new object and push it to the database
@@ -49,13 +51,16 @@ $(function () {
 
         if (trainName != "" && destination != "" && firstTrainTime != "" && frequency != "") {
             database.ref().push(trainArray);
-            //alert("Train successfully added");
         } else {
             alert("Please enter train data");
         }
 
         // Clear out the form fields
-        $("input").val("");
+        $("#train-input").val("");
+        $("#destination-input").val("");
+        $("#time-input").combodate('setValue', ""); //unable to reset value on Submit
+        //$("#time-input").val("HH:mm");
+        $("#frequency-input").val("");
 
 
     });
@@ -77,14 +82,14 @@ $(function () {
         var timeConverted = moment(firstTrainTime, "hh:mm").subtract(1, "days");
 
         // Get the difference between current time and first train time
-        diffTime = moment().diff(moment(timeConverted), "minutes");
+        var diffTime = moment().diff(moment(timeConverted), "minutes");
         // console.log("Difference in time: " + diffTime);
 
         // Time apart
         var remainder = diffTime % frequency;
         // console.log("Remainder: ", remainder);
 
-        // Minutes until the next train calculated by subtracting the remainder from the frequency
+        // Minutes until the next train - calculated by subtracting the remainder from the frequency
         var minutesAway = frequency - remainder;
         console.log("Minutes Away: " + minutesAway);
 
@@ -92,25 +97,25 @@ $(function () {
         var nextArrival = moment().add(minutesAway, "minutes");
         console.log("Next arrival: " + moment(nextArrival).format("HH:mm"));
 
-
+        // Display newly added train in HTML table and assign IDs for the remove buttons
         var $newEntry = $("<tr>")
             .attr("id", dbKey)
-            .append("<td>" + trainName + "</td><td>" + destination + "</td><td>" + frequency + "</td><td>" + moment(nextArrival).format("hh:mm A") + "</td><td>" + minutesAway + "</td><td><input id='button' type='button' value='Remove' class='removeBtn' data-key=" + dbKey + "/></td></tr>")
+            .append("<td>" + trainName + "</td><td>" + destination + "</td><td>" + frequency + "</td><td>" + moment(nextArrival).format("hh:mm A") + "</td><td>" + minutesAway + "</td><td><input id='removeBtn' type='button' value='Remove' class='btn btn-danger' data-key=" + dbKey + "/></td></tr>")
             .appendTo($("#train-table> tbody"));
-
-        //$("#train-table> tbody").append("<tr><td>" + trainName + "</td><td>" + destination + "</td><td>" + frequency + "</td><td>" + moment(nextArrival).format("hh:mm A") + "</td><td>" + minutesAway);
 
     }, function (errorObject) {
         console.log("Errors handled: " + errorObject.code)
     });
 
+    // Remove train function
     function removeTrain(dbbaseKey) {
         database.ref().child(dbbaseKey).remove();
-    };
+    }
 
-    $(document).on("click", ".removeBtn", function(event) {
+    // Remove buttons
+    $(document).on("click", "#removeBtn", function(event) {
         $(this).closest('tr').remove();
 
         removeTrain($(this).attr('data-key'));
     });
-}); // ending document ready
+});
